@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>부모 유형 테스트</title>
+  <title>감정코칭 자가진단 테스트</title>
   <style>
     :root {
       --bg:#f7f4ee; --card:#fff; --text:#252525; --muted:#707070; --line:#e4ddd1;
@@ -72,6 +72,10 @@
     .type-desc { border:1px solid var(--line); border-radius:16px; padding:14px; background:#fffaf6; }
     .type-desc h3 { margin:0 0 6px; font-size:18px; color:var(--accent); }
     .type-desc p { margin:0; color:#5f5548; font-size:14px; }
+    .hidden { display:none !important; }
+    .question.missing { border-color:#b45d48; box-shadow:0 0 0 3px rgba(180,93,72,.14); }
+    .action-panel { text-align:center; }
+    .action-panel .buttons { justify-content:center; margin-top:0; }
     @media print { button,.notice { display:none; } body { background:white; } .panel,.question,.score-card { box-shadow:none; } }
   </style>
 </head>
@@ -81,17 +85,7 @@
 </header>
 <main>
   <section class="panel">
-    <h2>테스트 방법</h2>
-    <ul class="muted">
-      <li>각 문항에서 <strong>예</strong> 또는 <strong>아니요</strong>를 선택하세요.</li>
-      <li>점수는 “예”라고 답한 문항만 1점으로 계산됩니다.</li>
-      <li>81번 문항까지 답변하면 아래쪽에 1~4순위 결과가 그래프로 표시됩니다.</li>
-    </ul>
-    <div class="buttons">
-      <button type="button" id="resultBtn">결과 보기</button>
-      <button type="button" class="secondary" id="resetBtn">답변 초기화</button>
-      <button type="button" class="secondary" id="printBtn">인쇄 / PDF 저장</button>
-    </div>
+    <p class="muted" style="margin:0; font-size:16px;">각 문항에서 <strong>예</strong> 또는 <strong>아니요</strong>를 선택하세요.</p>
   </section>
 
   <section class="panel">
@@ -910,32 +904,22 @@
     </form>
   </section>
 
-  <section class="panel" id="resultSection">
+  <section class="panel action-panel" id="actionPanel">
+    <div class="buttons">
+      <button type="button" id="resultBtn">결과 보기</button>
+      <button type="button" class="secondary" id="printBtn">인쇄 / PDF 저장</button>
+      <button type="button" class="secondary" id="resetBtn">답변 초기화</button>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="resultSection">
     <h2>최종 결과</h2>
-    <p class="result-meta" id="resultMeta">응답: 0 / 81</p>
     <div id="resultBars"></div>
   </section>
 
-  <section class="panel" id="typeDescriptionSection">
+  <section class="panel hidden" id="typeDescriptionSection">
     <h2>유형 간단 설명</h2>
-    <div class="type-desc-list">
-      <div class="type-desc">
-        <h3>축소 전환형</h3>
-        <p>아이의 슬픔이나 분노를 크게 문제 삼지는 않지만, 감정을 충분히 머물러 다루기보다 빨리 기분을 바꾸거나 지나가게 하려는 경향이 있습니다.</p>
-      </div>
-      <div class="type-desc">
-        <h3>억압형</h3>
-        <p>아이의 부정적 감정을 좋지 않은 행동이나 통제해야 할 문제로 보는 경향이 있습니다. 감정 표현을 줄이고 바로잡는 데 초점이 갈 수 있습니다.</p>
-      </div>
-      <div class="type-desc">
-        <h3>방임형</h3>
-        <p>아이의 감정을 허용하고 받아주는 편이지만, 감정을 어떻게 표현하고 조절해야 하는지 구체적으로 안내하는 부분은 약할 수 있습니다.</p>
-      </div>
-      <div class="type-desc">
-        <h3>감정 코칭형</h3>
-        <p>아이의 감정을 이해하고 공감하며, 그 감정을 계기로 아이와 가까워지고 문제를 함께 해결하려는 경향이 있습니다. 감정은 받아주되 행동의 한계와 표현 방법도 함께 가르칩니다.</p>
-      </div>
-    </div>
+    <div class="type-desc-list" id="rankedDescriptions"></div>
   </section>
 
   <section class="panel" id="interpretationSection">
@@ -960,8 +944,16 @@
 <script>
 (function() {
   var types = {"축소 전환형": [1, 2, 6, 7, 9, 12, 13, 14, 15, 17, 18, 19, 24, 25, 28, 33, 43, 62, 66, 67, 68, 76, 77, 78, 80], "억압형": [3, 4, 5, 8, 10, 11, 20, 21, 22, 41, 42, 54, 55, 56, 57, 58, 59, 60, 61, 63, 65, 69, 70], "방임형": [26, 44, 45, 46, 47, 48, 49, 50, 52, 53], "감정 코칭형": [16, 23, 27, 29, 30, 31, 32, 34, 35, 36, 37, 38, 39, 40, 51, 64, 71, 72, 73, 74, 75, 79, 81]};
+  var descriptions = {
+    "축소 전환형": "아이의 슬픔이나 분노를 크게 문제 삼지는 않지만, 감정을 충분히 머물러 다루기보다 빨리 기분을 바꾸거나 지나가게 하려는 경향이 있습니다.",
+    "억압형": "아이의 부정적 감정을 좋지 않은 행동이나 통제해야 할 문제로 보는 경향이 있습니다. 감정 표현을 줄이고 바로잡는 데 초점이 갈 수 있습니다.",
+    "방임형": "아이의 감정을 허용하고 받아주는 편이지만, 감정을 어떻게 표현하고 조절해야 하는지 구체적으로 안내하는 부분은 약할 수 있습니다.",
+    "감정 코칭형": "아이의 감정을 이해하고 공감하며, 그 감정을 계기로 아이와 가까워지고 문제를 함께 해결하려는 경향이 있습니다. 감정은 받아주되 행동의 한계와 표현 방법도 함께 가르칩니다."
+  };
   var totalQuestions = 81;
   var form = document.getElementById('testForm');
+  var resultSection = document.getElementById('resultSection');
+  var typeDescriptionSection = document.getElementById('typeDescriptionSection');
 
   function safeGet() {
     try { return JSON.parse(localStorage.getItem('emotionTestAnswersStatic') || '{}'); }
@@ -979,12 +971,16 @@
     }
     return data;
   }
-  function setText(id, text) { var el=document.getElementById(id); if(el) el.textContent=text; }
-  function setWidth(id, pct) { var el=document.getElementById(id); if(el) el.style.width=pct+'%'; }
-  function calculate() {
-    var answers = getAnswers();
-    safeSet(answers);
-    var answered = Object.keys(answers).length;
+  function firstMissingNumber(answers) {
+    for (var i=1; i<=totalQuestions; i++) {
+      if (!answers[i]) return i;
+    }
+    return null;
+  }
+  function clearMissingStyles() {
+    form.querySelectorAll('.question.missing').forEach(function(el) { el.classList.remove('missing'); });
+  }
+  function calculateResults(answers) {
     var results = [];
     Object.keys(types).forEach(function(name) {
       var nums = types[name];
@@ -993,7 +989,9 @@
       results.push({name:name, yes:yes, total:nums.length, pct:pct});
     });
     results.sort(function(a,b) { return b.pct - a.pct; });
-    setText('resultMeta', '응답: '+answered+' / '+totalQuestions);
+    return results;
+  }
+  function renderResults(results) {
     var resultBars = document.getElementById('resultBars');
     if (resultBars) {
       resultBars.innerHTML = results.map(function(r, idx) {
@@ -1004,6 +1002,43 @@
           + '</div>';
       }).join('');
     }
+
+    var descBox = document.getElementById('rankedDescriptions');
+    if (descBox) {
+      descBox.innerHTML = results.map(function(r, idx) {
+        return '<div class="type-desc">'
+          + '<h3>'+(idx+1)+'순위 · '+r.name+'</h3>'
+          + '<p>'+descriptions[r.name]+'</p>'
+          + '</div>';
+      }).join('');
+    }
+  }
+  function saveOnly() {
+    safeSet(getAnswers());
+  }
+  function showResults() {
+    var answers = getAnswers();
+    safeSet(answers);
+    clearMissingStyles();
+
+    var missing = firstMissingNumber(answers);
+    if (missing) {
+      resultSection.classList.add('hidden');
+      typeDescriptionSection.classList.add('hidden');
+      var target = document.getElementById('q'+missing);
+      if (target) {
+        target.classList.add('missing');
+        target.scrollIntoView({behavior:'smooth', block:'center'});
+        setTimeout(function() { target.classList.remove('missing'); }, 2500);
+      }
+      return;
+    }
+
+    var results = calculateResults(answers);
+    renderResults(results);
+    resultSection.classList.remove('hidden');
+    typeDescriptionSection.classList.remove('hidden');
+    resultSection.scrollIntoView({behavior:'smooth', block:'start'});
   }
   function load() {
     var saved = safeGet();
@@ -1011,16 +1046,17 @@
       var input = form.querySelector('input[name="q'+n+'"][value="'+saved[n]+'"]');
       if (input) input.checked = true;
     });
-    calculate();
   }
-  form.addEventListener('change', calculate);
-  document.getElementById('resultBtn').addEventListener('click', function() { document.getElementById('resultSection').scrollIntoView({behavior:'smooth'}); });
+  form.addEventListener('change', saveOnly);
+  document.getElementById('resultBtn').addEventListener('click', showResults);
   document.getElementById('printBtn').addEventListener('click', function() { window.print(); });
   document.getElementById('resetBtn').addEventListener('click', function() {
     if (!confirm('모든 답변을 초기화할까요?')) return;
     form.querySelectorAll('input[type="radio"]').forEach(function(input) { input.checked = false; });
     try { localStorage.removeItem('emotionTestAnswersStatic'); } catch(e) {}
-    calculate();
+    resultSection.classList.add('hidden');
+    typeDescriptionSection.classList.add('hidden');
+    clearMissingStyles();
     window.scrollTo({top:0, behavior:'smooth'});
   });
   load();
